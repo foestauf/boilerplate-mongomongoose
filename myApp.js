@@ -23,11 +23,13 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 /** 2) Create a 'Person' Model */
 var Schema = mongoose.Schema;
 
-var Person = new Schema({
+var personSchema = new Schema({
   name: {type: String, required: true},
   age: Number,
   favoriteFoods: [String]
 });
+
+const Person = mongoose.model("Person", personSchema);
 // First of all we need a **Schema**. Each schema maps to a MongoDB collection
 // and defines the shape of the documents within that collection. Schemas are
 // building block for Models. They can be nested to create complex models,
@@ -86,9 +88,11 @@ var Person /* = <Your Model> */
 // });
 
 var createAndSavePerson = function(done) {
-  
-  done(null /*, data*/);
-
+  var person = new Person({name: 'Joe', age: 31, favoriteFoods: ['chicken', 'beans']})
+  person.save((err, data) => {
+    if (err) return done(err)
+    return done(null, data)
+  })
 };
 
 /** 4) Create many People with `Model.create()` */
@@ -100,10 +104,13 @@ var createAndSavePerson = function(done) {
 // Create many people using `Model.create()`, using the function argument
 // 'arrayOfPeople'.
 
-var createManyPeople = function(arrayOfPeople, done) {
-    
-    done(null/*, data*/);
-    
+const createManyPeople = function(arrayOfPeople, done) {
+  Person.create(arrayOfPeople, function (err, data) {
+    if (err) {
+      done(err);
+    }
+    done(null, data);
+  });
 };
 
 /** # C[R]UD part II - READ #
@@ -118,9 +125,10 @@ var createManyPeople = function(arrayOfPeople, done) {
 // Use the function argument `personName` as search key.
 
 var findPeopleByName = function(personName, done) {
-  
-  done(null/*, data*/);
-
+  Person.find({name: personName}, function (err, personFound) {
+  if (err) return console.log(err);
+  done(null, personFound);
+  });
 };
 
 /** 6) Use `Model.findOne()` */
@@ -133,9 +141,10 @@ var findPeopleByName = function(personName, done) {
 // argument `food` as search key
 
 var findOneByFood = function(food, done) {
-
-  done(null/*, data*/);
-  
+  Person.findOne({ favoriteFoods: food}, function (err, data) {
+    if (err) return console.log(err);
+    done(null, data);
+  });
 };
 
 /** 7) Use `Model.findById()` */
@@ -148,9 +157,10 @@ var findOneByFood = function(food, done) {
 // Use the function argument 'personId' as search key.
 
 var findPersonById = function(personId, done) {
-  
-  done(null/*, data*/);
-  
+  Person.findById(personId, function (err, data) {
+    if (err) return console.log(err);
+    done(null, data);
+  });
 };
 
 /** # CR[U]D part III - UPDATE # 
@@ -178,10 +188,19 @@ var findPersonById = function(personId, done) {
 // manually mark it as edited using `document.markModified('edited-field')`
 // (http://mongoosejs.com/docs/schematypes.html - #Mixed )
 
-var findEditThenSave = function(personId, done) {
-  var foodToAdd = 'hamburger';
-  
-  done(null/*, data*/);
+const findEditThenSave = function({_id:personId}, done) {
+  const foodToAdd = 'hamburger';
+  Person.findById(personId, function (err, data) {
+    console.log('Starting findID ' + data);
+    data.favoriteFoods.push(foodToAdd);
+    data.markModified('favoriteFoods');
+    console.log('Finnished mark modified starting save ' + data);
+    data.save((e, r) => {
+      console.log("I'm in data save function:");
+      done(null, data);
+      if(e) console.log('error saving data: ', e.message)
+    });
+  });
 };
 
 /** 9) New Update : Use `findOneAndUpdate()` */
